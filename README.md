@@ -39,9 +39,9 @@ In a production system where match events are primarily server-to-client and use
 ## Project Layout
 
 ```txt
-backend/     Socket.IO match server (deploy independently)
-shared/      Shared domain types used by frontend and backend
-src/         React frontend
+backend/          Socket.IO match server (deploy independently)
+backend/shared/   Shared domain types used by frontend and backend
+src/              React frontend
 ```
 
 ## Running Locally
@@ -158,7 +158,7 @@ Environment variables:
 
 #### Deploy on Render
 
-The backend is deployed from the `backend/` service root using Docker. The monorepo [render.yaml](./render.yaml) blueprint sets `dockerContext` to the repo root so the image can include the `shared/` workspace.
+The backend is deployed from the `backend/` directory on Render using Docker. The image is self-contained: `shared/` lives inside `backend/` so the Docker build context does not need the repo root.
 
 **Recommended:** In Render, choose **New → Blueprint**, connect this repo, and deploy from `render.yaml`.
 
@@ -168,18 +168,17 @@ The backend is deployed from the `backend/` service root using Docker. The monor
 | --- | --- |
 | Language / Environment | **Docker** |
 | Root directory | `backend` |
-| Dockerfile path | `backend/Dockerfile` |
-| Docker build context | `.` (repo root) |
+| Dockerfile path | `Dockerfile` |
 | Health check path | `/health` |
 
 Set `CLIENT_ORIGINS` to your Netlify frontend URL (for example `https://your-app.netlify.app`).
 
 #### Run locally with Docker
 
-From the repo root:
+From the `backend/` directory:
 
 ```bash
-docker build -f backend/Dockerfile -t rtmt-backend .
+docker build -t rtmt-backend .
 docker run -p 4000:4000 -e CLIENT_ORIGINS=http://localhost:5173 rtmt-backend
 ```
 

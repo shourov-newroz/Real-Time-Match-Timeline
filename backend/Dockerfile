@@ -2,28 +2,24 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY shared ./shared
-COPY backend ./backend
+COPY tsconfig.json ./
+COPY src ./src
 
-RUN npm ci --workspace=@rtmt/backend
-
-WORKDIR /app/backend
+RUN npm install
 RUN npm run build
 
 FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY shared ./shared
-COPY backend/package.json ./backend/package.json
 
-RUN npm ci --workspace=@rtmt/backend --omit=dev
+RUN npm install --omit=dev
 
-COPY --from=build /app/backend/dist ./backend/dist
-
-WORKDIR /app/backend
+COPY --from=build /app/dist ./dist
 
 ENV NODE_ENV=production
 EXPOSE 4000

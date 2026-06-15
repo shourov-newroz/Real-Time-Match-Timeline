@@ -8,4 +8,4 @@ export type {
   MatchSnapshot,
   MatchStatus,
   Team,
-} from "../../shared/types";
+} from "../../backend/shared/types";

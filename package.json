@@ -7,8 +7,8 @@
     "node": ">=20"
   },
   "workspaces": [
-    "shared",
-    "backend"
+    "backend",
+    "backend/shared"
   ],
   "scripts": {
     "dev": "vite",

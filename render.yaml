@@ -4,8 +4,6 @@ services:
     runtime: docker
     plan: free
     rootDir: backend
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: .
     branch: main
     autoDeploy: true
     healthCheckPath: /health
