@@ -1,9 +1,4 @@
-import {
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   List,
   type ListImperativeAPI,
@@ -176,7 +171,7 @@ export function MatchTimeline() {
   };
 
   return (
-    <section className='relative h-[590px] rounded-[8px] border border-white/10 bg-pitch-900/78 p-4 shadow-glow'>
+    <section className='relative h-[590px] rounded-[8px] border border-white/10 bg-pitch-900/78 p-4 shadow-glow overflow-hidden'>
       <div className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <div>
           <h2 className='flex items-center gap-2 text-sm font-black text-white'>
