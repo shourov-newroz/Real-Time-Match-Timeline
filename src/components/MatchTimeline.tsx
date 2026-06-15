@@ -1,7 +1,4 @@
-import { motion } from 'motion/react';
 import {
-  useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -11,9 +8,9 @@ import {
   List,
   type ListImperativeAPI,
   type RowComponentProps,
+  useDynamicRowHeight,
 } from 'react-window';
 import { Activity } from 'lucide-react';
-import { entryMotion } from '../motion/motionTokens';
 import { useMatchStore } from '../store/matchStore';
 import type { MatchEvent } from '../types/match';
 import { filterEvents } from '../utils/eventFilter';
@@ -28,19 +25,13 @@ const TIMELINE_HEIGHT_PX = 470;
 const OVERSCAN_ITEMS = 5;
 
 type TimelineRowProps = {
-  animatedEventId: string | null;
   events: MatchEvent[];
-  isViewingLatest: boolean;
-  onMeasure: (eventId: string, index: number, height: number) => void;
 };
 
 function TimelineRow({
   index,
   style,
   events,
-  animatedEventId,
-  isViewingLatest,
-  onMeasure,
 }: RowComponentProps<TimelineRowProps>) {
   const event = events[index];
 
@@ -48,33 +39,13 @@ function TimelineRow({
     return null;
   }
 
-  const wrapperStyle = {
-    ...style,
-    top:
-      typeof style.top === 'number'
-        ? style.top
-        : Number.parseFloat(String(style.top ?? 0)),
-    height:
-      typeof style.height === 'number'
-        ? style.height
-        : Number.parseFloat(String(style.height ?? 0)),
-  };
-
   return (
     <TimelineItem
       event={event}
-      layoutEnabled={false}
-      animateEntry={isViewingLatest && event.id === animatedEventId}
-      containerStyle={wrapperStyle}
-      measureRef={(node) => {
-        if (!node) {
-          return;
-        }
-        onMeasure(
-          event.id,
-          index,
-          Math.ceil(node.getBoundingClientRect().height),
-        );
+      containerStyle={{
+        ...style,
+        boxSizing: 'border-box',
+        paddingBottom: ITEM_GAP_PX,
       }}
     />
   );
@@ -85,8 +56,6 @@ export function MatchTimeline() {
   const previousFirstId = useRef<string | null>(null);
   const previousFilter = useRef(useMatchStore.getState().activeFilter);
   const returningToLatestRef = useRef(false);
-  const heightCacheRef = useRef<Record<string, number>>({});
-  const [heightVersion, setHeightVersion] = useState(0);
 
   const events = useMatchStore((state) => state.events);
   const activeFilter = useMatchStore((state) => state.activeFilter);
@@ -102,103 +71,33 @@ export function MatchTimeline() {
   );
   const latestFilteredId = filteredEvents[0]?.id ?? null;
   const [renderedEvents, setRenderedEvents] = useState(filteredEvents);
-  const [animatedEventId, setAnimatedEventId] = useState<string | null>(null);
 
-  // Stable callback — does not include isViewingLatest so rowProps stays
-  // referentially stable across scroll ticks that toggle isViewingLatest.
-  const onMeasure = useCallback(
-    (eventId: string, index: number, height: number) => {
-      const nextHeight = height + ITEM_GAP_PX;
-      if (heightCacheRef.current[eventId] === nextHeight) {
-        return;
-      }
-
-      heightCacheRef.current[eventId] = nextHeight;
-      setHeightVersion((value) => value + 1);
-
-      // Only auto-scroll to top for the first item when we know we're live.
-      // We read the ref rather than closing over the state so this callback
-      // itself never needs to be recreated.
-      if (index === 0) {
-        requestAnimationFrame(() => {
-          const scrollTop = listRef.current?.element?.scrollTop ?? Infinity;
-          if (scrollTop < LATEST_THRESHOLD_PX) {
-            listRef.current?.scrollToRow({
-              index: 0,
-              align: 'start',
-              behavior: 'instant',
-            });
-          }
-        });
-      }
-    },
-    [],
-  );
+  const rowHeight = useDynamicRowHeight({
+    defaultRowHeight: ITEM_ESTIMATED_HEIGHT_PX + ITEM_GAP_PX,
+    key: activeFilter,
+  });
 
   const rowProps = useMemo(
     () => ({
-      animatedEventId,
       events: renderedEvents,
-      isViewingLatest,
-      onMeasure,
     }),
-    // onMeasure is stable; isViewingLatest changes on scroll but we still need
-    // it here so rows correctly compute animateEntry.
-    [animatedEventId, isViewingLatest, onMeasure, renderedEvents],
+    [renderedEvents],
   );
-
-  const rowHeight = useMemo(
-    () => (index: number) => {
-      const event = renderedEvents[index];
-      if (!event) {
-        return ITEM_ESTIMATED_HEIGHT_PX + ITEM_GAP_PX;
-      }
-
-      return (
-        heightCacheRef.current[event.id] ??
-        ITEM_ESTIMATED_HEIGHT_PX + ITEM_GAP_PX
-      );
-    },
-    // heightVersion triggers recalculation when any cached height changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [heightVersion, renderedEvents],
-  );
-
-  useEffect(() => {
-    if (!animatedEventId) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setAnimatedEventId((current) =>
-        current === animatedEventId ? null : current,
-      );
-    }, 700);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [animatedEventId]);
 
   useLayoutEffect(() => {
-    // Guard: a smooth-scroll "back to latest" is in flight.
     if (returningToLatestRef.current) {
       setViewingLatest(true);
       setRenderedEvents(filteredEvents);
       resetNewEvents();
-      setAnimatedEventId(null);
       previousFirstId.current = latestFilteredId;
       return;
     }
 
-    // Guard: the active filter changed — reset everything and jump to top.
     if (previousFilter.current !== activeFilter) {
       previousFilter.current = activeFilter;
-      // If we happened to be mid-return when filter changed, cancel that too.
       returningToLatestRef.current = false;
       setRenderedEvents(filteredEvents);
       resetNewEvents();
-      setAnimatedEventId(null);
       previousFirstId.current = latestFilteredId;
       requestAnimationFrame(() => {
         listRef.current?.scrollToRow({
@@ -210,17 +109,14 @@ export function MatchTimeline() {
       return;
     }
 
-    // No new events at the head of the filtered list — nothing to do.
     if (!latestFilteredId || previousFirstId.current === latestFilteredId) {
       previousFirstId.current = latestFilteredId;
       return;
     }
 
     if (isViewingLatest) {
-      // User is watching live: push the new event and animate it in.
       setRenderedEvents(filteredEvents);
       resetNewEvents();
-      setAnimatedEventId(latestFilteredId);
       requestAnimationFrame(() => {
         listRef.current?.scrollToRow({
           index: 0,
@@ -229,8 +125,6 @@ export function MatchTimeline() {
         });
       });
     } else {
-      // User has scrolled away: count how many new events prepended since the
-      // last anchor and badge them without mutating the visible list.
       const anchoredId = previousFirstId.current;
       const prependedCount = anchoredId
         ? filteredEvents.findIndex((event) => event.id === anchoredId)
@@ -240,7 +134,6 @@ export function MatchTimeline() {
           incrementNewEvents();
         }
       }
-      setAnimatedEventId(null);
     }
 
     previousFirstId.current = latestFilteredId;
@@ -250,7 +143,6 @@ export function MatchTimeline() {
     incrementNewEvents,
     isViewingLatest,
     latestFilteredId,
-    listRef,
     resetNewEvents,
     setViewingLatest,
   ]);
@@ -260,10 +152,8 @@ export function MatchTimeline() {
     const nearLatest =
       nextScrollTop < LATEST_THRESHOLD_PX || returningToLatestRef.current;
 
-    // The smooth-scroll "back to latest" finishes when we cross the threshold.
     if (returningToLatestRef.current && nextScrollTop <= LATEST_THRESHOLD_PX) {
       returningToLatestRef.current = false;
-      setAnimatedEventId(null);
     }
 
     setViewingLatest(nearLatest);
@@ -278,7 +168,6 @@ export function MatchTimeline() {
     setViewingLatest(true);
     setRenderedEvents(filteredEvents);
     resetNewEvents();
-    setAnimatedEventId(null);
     listRef.current?.scrollToRow({
       index: 0,
       align: 'start',
@@ -316,12 +205,7 @@ export function MatchTimeline() {
             style={{ height: TIMELINE_HEIGHT_PX }}
           />
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={entryMotion.transition}
-            className='grid min-h-[280px] transform-gpu place-items-center rounded-[8px] border border-dashed border-white/10 bg-white/[0.03] text-center will-change-transform'
-          >
+          <div className='grid min-h-[280px] place-items-center rounded-[8px] border border-dashed border-white/10 bg-white/[0.03] text-center'>
             <div>
               <Activity className='mx-auto h-8 w-8 text-slate-600' />
               <p className='mt-3 text-sm font-semibold text-slate-300'>
@@ -331,7 +215,7 @@ export function MatchTimeline() {
                 Start the match to receive live timeline updates.
               </p>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
       <BackToLatestButton
