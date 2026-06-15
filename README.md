@@ -32,21 +32,45 @@ A simplified ShotMob-style football match tracker with a Socket.IO-backed live e
 - The server prevents duplicate match intervals when Start Match is triggered repeatedly.
 - The client requests a fresh snapshot on connect/reconnect so score, clock, and timeline resync cleanly after transport loss.
 
+## Project Layout
+
+```txt
+backend/     Socket.IO match server (deploy independently)
+shared/      Shared domain types used by frontend and backend
+src/         React frontend
+```
+
 ## Running Locally
 
-Install dependencies:
+Install dependencies from the repo root:
 
 ```bash
 npm install
 ```
 
-Run locally:
+Run the frontend:
 
 ```bash
 npm run dev
 ```
 
+Run the backend:
+
+```bash
+npm run dev:backend
+```
+
+Run both together:
+
+```bash
+npm run dev:all
+```
+
 Frontend: `http://localhost:5173`
+
+Backend: `http://localhost:4000`
+
+Copy `.env.example` and `backend/.env.example` if you need custom ports or origins.
 
 ## Match Flow
 
@@ -94,12 +118,17 @@ src/
 
 ## Deployment
 
+Frontend and backend are split so each can be deployed on its own platform.
+
+### Frontend (Netlify)
+
 This repo is configured for Netlify static hosting with [netlify.toml](./netlify.toml).
 
 Netlify settings:
 
 - Build command: `npm run build`
 - Publish directory: `dist`
+- Environment variable: `VITE_SOCKET_URL` = your deployed backend URL
 
 Deploy flow:
 
@@ -108,6 +137,36 @@ npm run build
 ```
 
 Then connect the repo in Netlify or deploy the generated `dist` directory with the Netlify CLI.
+
+### Backend (Node / Docker / Railway / Render)
+
+The backend lives in [backend/](./backend/) and exposes:
+
+- `GET /health` for uptime checks
+- Socket.IO on the same port
+
+Environment variables:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `4000` | HTTP + Socket.IO port |
+| `CLIENT_ORIGINS` | `http://localhost:5173` | Comma-separated frontend URLs allowed by CORS |
+
+Build and run without Docker:
+
+```bash
+npm run build:backend
+npm run start --workspace=@rtmt/backend
+```
+
+Docker:
+
+```bash
+docker build -f backend/Dockerfile -t rtmt-backend .
+docker run -p 4000:4000 -e CLIENT_ORIGINS=https://your-frontend.netlify.app rtmt-backend
+```
+
+After the backend is live, set `VITE_SOCKET_URL` on the frontend to that public URL and redeploy the frontend.
 
 ## Performance Notes
 

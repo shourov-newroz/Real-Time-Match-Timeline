@@ -1,7 +1,7 @@
-import { motion as m } from "motion/react";
-import { AlertCircle, Pause, Play, RotateCcw } from "lucide-react";
-import { buttonMotion } from "../motion/motionTokens";
-import { useMatchStore } from "../store/matchStore";
+import { motion as m } from 'motion/react';
+import { AlertCircle, Pause, Play, RotateCcw } from 'lucide-react';
+import { buttonMotion } from '../motion/motionTokens';
+import { useMatchStore } from '../store/matchStore';
 
 type Props = {
   startMatch: () => void;
@@ -10,46 +10,55 @@ type Props = {
   resetMatch: () => void;
 };
 
-export function MatchControls({ startMatch, pauseMatch, resumeMatch, resetMatch }: Props) {
+export function MatchControls({
+  startMatch,
+  pauseMatch,
+  resumeMatch,
+  resetMatch,
+}: Props) {
   const status = useMatchStore((state) => state.matchStatus);
   const connectionStatus = useMatchStore((state) => state.connectionStatus);
   const commandState = useMatchStore((state) => state.commandState);
-  const connectionBlocked = connectionStatus !== "connected";
-  const hasPendingCommand = Object.values(commandState).some((command) => command.pending);
+  const connectionBlocked = connectionStatus !== 'connected';
+  const hasPendingCommand = Object.values(commandState).some(
+    (command) => command.pending,
+  );
   const latestError = Object.values(commandState)
     .map((command) => command.error)
     .find((error): error is string => Boolean(error));
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className='space-y-3'>
+      <div className='flex flex-wrap items-center justify-center gap-2'>
         <ControlButton
-          label="Start"
-          pendingLabel="Starting..."
+          label='Start'
+          pendingLabel='Starting...'
           icon={Play}
           onClick={startMatch}
-          disabled={connectionBlocked || hasPendingCommand || status === "live"}
+          disabled={connectionBlocked || hasPendingCommand || status === 'live'}
           pending={commandState.start.pending}
         />
         <ControlButton
-          label="Pause"
-          pendingLabel="Pausing..."
+          label='Pause'
+          pendingLabel='Pausing...'
           icon={Pause}
           onClick={pauseMatch}
-          disabled={connectionBlocked || hasPendingCommand || status !== "live"}
+          disabled={connectionBlocked || hasPendingCommand || status !== 'live'}
           pending={commandState.pause.pending}
         />
         <ControlButton
-          label="Resume"
-          pendingLabel="Resuming..."
+          label='Resume'
+          pendingLabel='Resuming...'
           icon={Play}
           onClick={resumeMatch}
-          disabled={connectionBlocked || hasPendingCommand || status !== "paused"}
+          disabled={
+            connectionBlocked || hasPendingCommand || status !== 'paused'
+          }
           pending={commandState.resume.pending}
         />
         <ControlButton
-          label="Reset"
-          pendingLabel="Resetting..."
+          label='Reset'
+          pendingLabel='Resetting...'
           icon={RotateCcw}
           onClick={resetMatch}
           disabled={connectionBlocked || hasPendingCommand}
@@ -57,14 +66,17 @@ export function MatchControls({ startMatch, pauseMatch, resumeMatch, resetMatch 
           secondary
         />
       </div>
-      <div className="min-h-5 text-center text-xs">
+      <div className='min-h-5 text-center text-xs'>
         {connectionBlocked ? (
-          <p aria-live="polite" className="font-semibold text-warning-500">
+          <p aria-live='polite' className='font-semibold text-warning-500'>
             Controls are unavailable while the socket is {connectionStatus}.
           </p>
         ) : latestError ? (
-          <p aria-live="polite" className="inline-flex items-center gap-1 font-semibold text-red-400">
-            <AlertCircle className="h-3.5 w-3.5" />
+          <p
+            aria-live='polite'
+            className='inline-flex items-center gap-1 font-semibold text-red-400'
+          >
+            <AlertCircle className='h-3.5 w-3.5' />
             {latestError}
           </p>
         ) : null}
@@ -91,21 +103,21 @@ function ControlButton({
   secondary?: boolean;
 }) {
   const baseClassName = secondary
-    ? "border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"
-    : "bg-electric-500 text-white shadow-lg shadow-electric-500/20 hover:bg-electric-400";
+    ? 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+    : 'bg-electric-500 text-white shadow-lg shadow-electric-500/20 hover:bg-electric-400';
 
   return (
     <m.button
       {...buttonMotion}
-      type="button"
+      type='button'
       onClick={onClick}
       disabled={disabled}
       aria-busy={pending}
-      className={`inline-flex transform-gpu items-center gap-2 rounded-[8px] px-4 py-2 text-sm font-bold transition-colors will-change-transform focus:outline-none focus:ring-2 focus:ring-electric-400/70 ${baseClassName} ${
-        disabled ? "cursor-not-allowed opacity-55 hover:bg-inherit" : "cursor-pointer"
+      className={`inline-flex transform-gpu items-center gap-2 rounded-[8px] px-4 py-2 text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-electric-400/70 disabled:cursor-not-allowed disabled:opacity-55 cursor-pointer  ${baseClassName} 
+       
       }`}
     >
-      <Icon className={`h-4 w-4 ${pending ? "animate-pulse" : ""}`} />
+      <Icon className={`h-4 w-4 ${pending ? 'animate-pulse' : ''}`} />
       {pending ? pendingLabel : label}
     </m.button>
   );

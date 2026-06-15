@@ -1,4 +1,4 @@
-import type { MatchEvent, MatchEventType, Team } from "./types";
+import type { MatchEvent, MatchEventType, Team } from "@rtmt/shared";
 
 type Player = {
   name: string;
@@ -64,7 +64,6 @@ export function createMockEvent(matchId: string, sequence: number, minute: numbe
 }
 
 function chooseTeam(sequence: number): Team {
-  // Slightly favors Team A possession while still alternating pressure naturally.
   const pressure = Math.sin(sequence / 6) + Math.random() * 1.35;
   return pressure > 0.45 ? "Team A" : "Team B";
 }

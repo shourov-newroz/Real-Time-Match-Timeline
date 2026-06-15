@@ -2,23 +2,31 @@ import express from "express";
 import cors from "cors";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { createMockEvent } from "./mockEvents";
-import type { CommandAck, MatchEvent, MatchSnapshot, MatchStatus } from "./types";
+import type { CommandAck, MatchEvent, MatchSnapshot, MatchStatus } from "@rtmt/shared";
+import { createMockEvent } from "./mockEvents.js";
 
 const PORT = Number(process.env.PORT ?? 4000);
 const REAL_MATCH_MINUTE_MS = 60_000;
 const MIN_STREAM_DELAY_MS = 1_000;
 const MAX_STREAM_DELAY_MS = 2_000;
 
+function parseClientOrigins() {
+  const configured = process.env.CLIENT_ORIGINS?.split(",").map((origin) => origin.trim()).filter(Boolean);
+  if (configured?.length) return configured;
+  return ["http://localhost:5173"];
+}
+
+const clientOrigins = parseClientOrigins();
+
 const app = express();
-app.use(cors({ origin: true }));
+app.use(cors({ origin: clientOrigins }));
 app.get("/health", (_req, res) => {
   res.json({ ok: true, status: match.status, minute: getCurrentMinute() });
 });
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: true, methods: ["GET", "POST"] },
+  cors: { origin: clientOrigins, methods: ["GET", "POST"] },
 });
 
 type MatchRuntime = {
@@ -213,5 +221,6 @@ io.on("connection", (socket) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`Match timeline server running on http://localhost:${PORT}`);
+  console.log(`Match timeline server running on port ${PORT}`);
+  console.log(`Allowed client origins: ${clientOrigins.join(", ")}`);
 });
