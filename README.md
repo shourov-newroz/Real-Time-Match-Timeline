@@ -1,6 +1,6 @@
 # Real-Time Match Timeline
 
-A simplified ShotMob-style football match tracker with a Socket.IO-backed live event stream, animated React timeline, live score state, event filters, match controls, connection status indicator, and scroll-stable newest-first updates.
+A simplified ShotMob-style football match tracker with a Socket.IO-backed live event stream, virtualized React timeline, animated event cards, live score state, event filters, match controls, connection status indicator, and scroll-stable newest-first updates.
 
 ## Tech Stack
 
@@ -8,6 +8,7 @@ A simplified ShotMob-style football match tracker with a Socket.IO-backed live e
 - Tailwind CSS
 - Zustand
 - Framer Motion
+- react-window (virtualized timeline)
 - Netlify static hosting
 
 ## Real-Time Transport
@@ -19,7 +20,7 @@ In a production system where match events are primarily server-to-client and use
 - Live score and current match minute
 - Start, pause, resume, and reset controls
 - Socket.IO-backed live match simulation
-- Event timeline with newest events first
+- Virtualized event timeline with newest events first (`react-window`)
 - Filters for all events, goals, chances, fouls, cards, set pieces, and substitutions
 - Match summary panel with totals and latest event
 - Connection indicator with reconnecting state and control gating
@@ -84,15 +85,26 @@ Copy `.env.example` and `backend/.env.example` if you need custom ports or origi
 4. Mock events are generated every 1-2 seconds using the current minute and broadcast to all connected clients.
 5. Pause, resume, reset, and end states are acknowledged by the server and reflected in the UI.
 
+## Timeline Virtualization
+
+The timeline is rendered with `react-window` so only visible rows (plus a small overscan buffer) mount in the DOM. This keeps scrolling and live updates responsive even as the event list grows over a full 90-minute match.
+
+Implementation highlights in `src/components/MatchTimeline.tsx`:
+
+- `List` with `useDynamicRowHeight` for variable-height event cards
+- `overscanCount` of 5 rows above and below the viewport
+- Stable row keys via event IDs
+- Fixed 470px viewport height inside the timeline panel
+
 ## Timeline Scroll Stability
 
-The timeline uses a fixed-height scroll container and tracks whether the user is near the latest events:
+The virtual list tracks whether the user is near the latest events:
 
 ```ts
-scrollContainer.scrollTop < 80;
+listRef.current?.element?.scrollTop < 80;
 ```
 
-If the user is near the top, new events animate into view. If the user is reading older events, the component measures the previous scroll height and offsets `scrollTop` after insertion so the visible reading position stays stable.
+If the user is near the top, new events are merged into `renderedEvents` and the list scrolls to row `0`. If the user is reading older events, `renderedEvents` is held steady so the virtual list does not jump; incoming events increment the unread count instead. Returning to the latest or changing filters refreshes the rendered list and scrolls back to the top.
 
 ## Back To Latest
 
@@ -193,12 +205,10 @@ After the backend is live, set `VITE_SOCKET_URL` on the frontend to that public 
 
 ## Performance Notes
 
+- The timeline uses `react-window` windowing instead of rendering the full event list.
+- Dynamic row heights are measured once per row and cached by `useDynamicRowHeight`.
 - Derived timeline results use `useMemo`.
 - Timeline keys use stable event IDs.
 - Store score updates only occur on goal events.
 - New event animations avoid layout animation, height changes, margin changes, and full-list reflow effects.
 - The server runtime keeps one active stream timer and one active clock timer, then clears both on pause, reset, and match end.
-
-## Production Next Steps
-
-For a production-scale version, the next step would be timeline virtualization.
