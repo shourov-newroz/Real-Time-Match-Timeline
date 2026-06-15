@@ -158,18 +158,32 @@ Environment variables:
 
 #### Deploy on Render
 
-This repo includes a [render.yaml](./render.yaml) blueprint. Connect the GitHub repo in Render and create a **Blueprint** instance, or add a **Web Service** manually with:
+The backend is deployed from the `backend/` service root using Docker. The monorepo [render.yaml](./render.yaml) blueprint sets `dockerContext` to the repo root so the image can include the `shared/` workspace.
+
+**Recommended:** In Render, choose **New → Blueprint**, connect this repo, and deploy from `render.yaml`.
+
+**Or create a Web Service manually** with these settings:
 
 | Setting | Value |
 | --- | --- |
-| Root directory | `.` (repo root) |
-| Build command | `npm ci && npm run build:backend` |
-| Start command | `npm run start:backend` |
+| Language / Environment | **Docker** |
+| Root directory | `backend` |
+| Dockerfile path | `backend/Dockerfile` |
+| Docker build context | `.` (repo root) |
 | Health check path | `/health` |
 
 Set `CLIENT_ORIGINS` to your Netlify frontend URL (for example `https://your-app.netlify.app`).
 
-#### Run locally (production mode)
+#### Run locally with Docker
+
+From the repo root:
+
+```bash
+docker build -f backend/Dockerfile -t rtmt-backend .
+docker run -p 4000:4000 -e CLIENT_ORIGINS=http://localhost:5173 rtmt-backend
+```
+
+#### Run locally (production mode, no Docker)
 
 ```bash
 npm run build:backend

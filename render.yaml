@@ -1,10 +1,13 @@
 services:
   - type: web
     name: rtmt-backend
-    runtime: node
+    runtime: docker
     plan: free
-    buildCommand: npm ci && npm run build:backend
-    startCommand: npm run start:backend
+    rootDir: backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    branch: main
+    autoDeploy: true
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
