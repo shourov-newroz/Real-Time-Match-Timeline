@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: rtmt-backend
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build:backend
+    startCommand: npm run start:backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_ORIGINS
+        sync: false

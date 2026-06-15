@@ -13,6 +13,7 @@
     "dev:all": "concurrently -n client,server -c blue,green \"npm run dev\" \"npm run dev:backend\"",
     "build": "tsc -b && vite build",
     "build:backend": "npm run build --workspace=@rtmt/backend",
+    "start:backend": "npm run start --workspace=@rtmt/backend",
     "preview": "vite preview",
     "test:run": "tsc -b --pretty false"
   },

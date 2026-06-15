@@ -142,7 +142,7 @@ npm run build
 
 Then connect the repo in Netlify or deploy the generated `dist` directory with the Netlify CLI.
 
-### Backend (Node / Docker / Railway / Render)
+### Backend (Render)
 
 The backend lives in [backend/](./backend/) and exposes:
 
@@ -153,21 +153,27 @@ Environment variables:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `4000` | HTTP + Socket.IO port |
+| `PORT` | `4000` | HTTP + Socket.IO port (Render sets this automatically) |
 | `CLIENT_ORIGINS` | `http://localhost:5173` | Comma-separated frontend URLs allowed by CORS |
 
-Build and run without Docker:
+#### Deploy on Render
+
+This repo includes a [render.yaml](./render.yaml) blueprint. Connect the GitHub repo in Render and create a **Blueprint** instance, or add a **Web Service** manually with:
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `.` (repo root) |
+| Build command | `npm ci && npm run build:backend` |
+| Start command | `npm run start:backend` |
+| Health check path | `/health` |
+
+Set `CLIENT_ORIGINS` to your Netlify frontend URL (for example `https://your-app.netlify.app`).
+
+#### Run locally (production mode)
 
 ```bash
 npm run build:backend
-npm run start --workspace=@rtmt/backend
-```
-
-Docker:
-
-```bash
-docker build -f backend/Dockerfile -t rtmt-backend .
-docker run -p 4000:4000 -e CLIENT_ORIGINS=https://your-frontend.netlify.app rtmt-backend
+npm run start:backend
 ```
 
 After the backend is live, set `VITE_SOCKET_URL` on the frontend to that public URL and redeploy the frontend.
