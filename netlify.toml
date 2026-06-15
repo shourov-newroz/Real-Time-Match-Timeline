@@ -2,6 +2,9 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  VITE_SOCKET_URL = "https://real-time-match-timeline.onrender.com"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

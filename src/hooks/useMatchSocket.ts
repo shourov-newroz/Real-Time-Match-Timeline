@@ -3,7 +3,7 @@ import { io, type Socket } from "socket.io-client";
 import { useMatchStore } from "../store/matchStore";
 import type { CommandAck, MatchCommand, MatchEvent, MatchSnapshot } from "../types/match";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ?? "http://localhost:4000";
+const SOCKET_URL = (import.meta.env.VITE_SOCKET_URL ?? "http://localhost:4000").replace(/\/$/, "");
 const ACK_TIMEOUT_MS = 5_000;
 
 type CommandEventName = "start_match" | "pause_match" | "resume_match" | "reset_match";
