@@ -10,6 +10,10 @@ A simplified ShotMob-style football match tracker with a Socket.IO-backed live e
 - Framer Motion
 - Netlify static hosting
 
+## Real-Time Transport
+
+In a production system where match events are primarily server-to-client and user commands are infrequent, Server-Sent Events (SSE) combined with REST endpoints could be a simpler and more cost-efficient alternative. WebSocket was chosen here because the assessment specifically requires a WebSocket-based real-time event stream and it provides a flexible foundation for future bidirectional features.
+
 ## Features Implemented
 
 - Live score and current match minute
