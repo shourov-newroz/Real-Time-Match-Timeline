@@ -11,13 +11,13 @@ export function LiveScore() {
   const minute = useMatchStore((state) => state.currentMinute);
   const status = useMatchStore((state) => state.matchStatus);
   const statusLabel =
-    status === "idle"
-      ? "Ready"
-      : status === "live"
-        ? "Live"
-        : status === "paused"
-          ? "Paused"
-          : "Full Time";
+    status === 'idle'
+      ? 'Ready'
+      : status === 'live'
+        ? 'Live'
+        : status === 'paused'
+          ? 'Paused'
+          : 'Full Time';
 
   return (
     <section className='rounded-[8px] border border-white/10 bg-gradient-to-br from-pitch-850 via-pitch-900 to-pitch-950 p-5 shadow-glow md:p-7'>
@@ -75,7 +75,7 @@ function ScoreValue({ value }: { value: number }) {
   return (
     <AnimatedNumber
       value={value}
-      containerClassName='w-12 sm:w-16'
+      containerClassName='w-18 sm:w-27'
       className={`text-6xl font-black leading-none tracking-tighter md:text-7xl ${
         value > 0 ? 'text-white' : 'text-slate-550'
       }`}

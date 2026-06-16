@@ -1,13 +1,17 @@
+import { motion as m } from 'motion/react';
 import type { CSSProperties } from 'react';
+import { entryMotion } from '../motion/motionTokens';
 import type { MatchEvent } from '../types/match';
 import { eventAccent, EventIcon } from '../utils/eventIcon';
 import { eventLabel, teamShort } from '../utils/eventLabel';
 
 export function TimelineItem({
   event,
+  shouldAnimateEntry = false,
   containerStyle,
 }: {
   event: MatchEvent;
+  shouldAnimateEntry?: boolean;
   containerStyle?: CSSProperties;
 }) {
   const accent = eventAccent(event.type);
@@ -19,8 +23,16 @@ export function TimelineItem({
       style={containerStyle}
       className='cursor-default'
     >
-      <article
-        className={`flex min-h-[76px] rounded-[8px] border bg-pitch-800/88 px-4 py-3 shadow-sm ${accent}`}
+      <m.article
+        key={event.id}
+        initial={
+          shouldAnimateEntry ? { opacity: 0, y: -14, scale: 0.96 } : false
+        }
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={
+          shouldAnimateEntry ? entryMotion.transition : { duration: 0 }
+        }
+        className={`flex min-h-[76px] transform-gpu rounded-[8px] border bg-pitch-800/88 px-4 py-3 shadow-sm will-change-transform ${accent}`}
       >
         <div className='grid w-full grid-cols-[auto_1fr_auto] items-start gap-3'>
           <div className='min-w-8 text-sm font-black text-warning-500'>
@@ -49,7 +61,7 @@ export function TimelineItem({
             {isHome ? 'HM' : 'AW'}
           </span>
         </div>
-      </article>
+      </m.article>
     </div>
   );
 }

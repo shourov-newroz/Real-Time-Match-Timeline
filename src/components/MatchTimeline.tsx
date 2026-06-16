@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   List,
   type ListImperativeAPI,
@@ -18,15 +18,27 @@ const ITEM_GAP_PX = 12;
 const ITEM_ESTIMATED_HEIGHT_PX = 88;
 const TIMELINE_HEIGHT_PX = 470;
 const OVERSCAN_ITEMS = 5;
+const ENTRY_ANIMATION_MS = 520;
+
+function prependedEventIds(events: MatchEvent[], anchorId: string | null) {
+  if (!anchorId) return [];
+
+  const anchorIndex = events.findIndex((event) => event.id === anchorId);
+  if (anchorIndex <= 0) return [];
+
+  return events.slice(0, anchorIndex).map((event) => event.id);
+}
 
 type TimelineRowProps = {
   events: MatchEvent[];
+  enteringEventIds: Set<string>;
 };
 
 function TimelineRow({
   index,
   style,
   events,
+  enteringEventIds,
 }: RowComponentProps<TimelineRowProps>) {
   const event = events[index];
 
@@ -37,6 +49,7 @@ function TimelineRow({
   return (
     <TimelineItem
       event={event}
+      shouldAnimateEntry={enteringEventIds.has(event.id)}
       containerStyle={{
         ...style,
         boxSizing: 'border-box',
@@ -51,6 +64,7 @@ export function MatchTimeline() {
   const previousFirstId = useRef<string | null>(null);
   const previousFilter = useRef(useMatchStore.getState().activeFilter);
   const returningToLatestRef = useRef(false);
+  const animationResetTimeoutRef = useRef<number | null>(null);
 
   const events = useMatchStore((state) => state.events);
   const activeFilter = useMatchStore((state) => state.activeFilter);
@@ -66,23 +80,53 @@ export function MatchTimeline() {
   );
   const latestFilteredId = filteredEvents[0]?.id ?? null;
   const [renderedEvents, setRenderedEvents] = useState(filteredEvents);
+  const [enteringEventIds, setEnteringEventIds] = useState<string[]>([]);
 
   const rowHeight = useDynamicRowHeight({
     defaultRowHeight: ITEM_ESTIMATED_HEIGHT_PX + ITEM_GAP_PX,
     key: activeFilter,
   });
 
+  const enteringEventIdSet = useMemo(
+    () => new Set(enteringEventIds),
+    [enteringEventIds],
+  );
+
   const rowProps = useMemo(
     () => ({
       events: renderedEvents,
+      enteringEventIds: enteringEventIdSet,
     }),
-    [renderedEvents],
+    [enteringEventIdSet, renderedEvents],
   );
+
+  useEffect(() => {
+    if (enteringEventIds.length === 0) return;
+
+    if (animationResetTimeoutRef.current) {
+      window.clearTimeout(animationResetTimeoutRef.current);
+    }
+
+    animationResetTimeoutRef.current = window.setTimeout(() => {
+      setEnteringEventIds([]);
+      animationResetTimeoutRef.current = null;
+    }, ENTRY_ANIMATION_MS);
+
+    return () => {
+      if (animationResetTimeoutRef.current) {
+        window.clearTimeout(animationResetTimeoutRef.current);
+        animationResetTimeoutRef.current = null;
+      }
+    };
+  }, [enteringEventIds]);
 
   useLayoutEffect(() => {
     if (returningToLatestRef.current) {
       setViewingLatest(true);
       setRenderedEvents(filteredEvents);
+      setEnteringEventIds(
+        prependedEventIds(filteredEvents, renderedEvents[0]?.id ?? null),
+      );
       resetNewEvents();
       previousFirstId.current = latestFilteredId;
       return;
@@ -92,6 +136,7 @@ export function MatchTimeline() {
       previousFilter.current = activeFilter;
       returningToLatestRef.current = false;
       setRenderedEvents(filteredEvents);
+      setEnteringEventIds([]);
       resetNewEvents();
       previousFirstId.current = latestFilteredId;
       requestAnimationFrame(() => {
@@ -110,6 +155,9 @@ export function MatchTimeline() {
     }
 
     if (isViewingLatest) {
+      setEnteringEventIds(
+        prependedEventIds(filteredEvents, renderedEvents[0]?.id ?? null),
+      );
       setRenderedEvents(filteredEvents);
       resetNewEvents();
       requestAnimationFrame(() => {
@@ -138,6 +186,7 @@ export function MatchTimeline() {
     incrementNewEvents,
     isViewingLatest,
     latestFilteredId,
+    renderedEvents,
     resetNewEvents,
     setViewingLatest,
   ]);
@@ -162,6 +211,9 @@ export function MatchTimeline() {
     returningToLatestRef.current = true;
     setViewingLatest(true);
     setRenderedEvents(filteredEvents);
+    setEnteringEventIds(
+      prependedEventIds(filteredEvents, renderedEvents[0]?.id ?? null),
+    );
     resetNewEvents();
     listRef.current?.scrollToRow({
       index: 0,
